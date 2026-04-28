@@ -1,0 +1,33 @@
+{
+    "items": [
+        {
+            "name": "GivingTree Launcher",
+            "priority": 0,
+            "items": [
+                {
+                    "name": "Test Launch GivingTree",
+                    "priority": 1,
+                    "action": "./bin/launcher.sh",
+                    "exitmenu": true
+                },
+                {
+                    "name": "──────────────────────────",
+                    "priority": 2,
+                    "items": []
+                },
+                {
+                    "name": "Install Amazon-Free Boot",
+                    "priority": 3,
+                    "action": "./bin/install-amazon-free-boot.sh",
+                    "exitmenu": true
+                },
+                {
+                    "name": "Uninstall Amazon-Free Boot",
+                    "priority": 4,
+                    "action": "./bin/uninstall-amazon-free-boot.sh",
+                    "exitmenu": true
+                }
+            ]
+        }
+    ]
+}
