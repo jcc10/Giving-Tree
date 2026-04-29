@@ -26,7 +26,7 @@
                     "priority": 3,
                     "action": "./bin/install-lumberjack.sh",
                     "exitmenu": true
-                },
+                }
             ]
         }
     ]
