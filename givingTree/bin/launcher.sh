@@ -1,6 +1,7 @@
 #!/bin/sh
 # Kindle Touch-Enabled Launcher - CLEAN UI VERSION
 # Uses compiled touch_reader binary for real touch input
+echo "RUNNING" > /var/tmp/givingtree-state
 
 SCRIPT_DIR="$(dirname "$0")"
 FBINK="/mnt/us/koreader/fbink"
@@ -78,11 +79,6 @@ stop_services() {
 
 # Restore Kindle services (resume suspended processes)
 restore_services() {
-    # Signal watchdog NOT to restart (permanent exit to KindleOS)
-    echo "EXIT" > /var/tmp/givingtree-state
-    
-    # Kill touch reader
-    killall -TERM touch_reader 2>/dev/null
     
     # Check if we're in boot mode
     if [ "$GIVINGTREE_BOOT_MODE" = "1" ]; then
@@ -91,6 +87,9 @@ restore_services() {
         lipc-set-prop com.lab126.powerd preventScreenSaver 0 2>/dev/null
         return
     fi
+    
+    # Signal watchdog NOT to restart (permanent exit to KindleOS)
+    echo "EXIT" > /var/tmp/givingtree-state
     
     # Check if framework was actually running before
     if [ "$FRAMEWORK_WAS_RUNNING" = "1" ]; then
@@ -142,23 +141,11 @@ get_screen_size() {
 # Draw the menu (OPTIMIZED FOR 600x800 - FULL SCREEN)
 draw_launcher() {
     
-    $FBINK -c
-    
     # ═══════════════════════════════════════════════════
     # BANNER - Centered with padding (lines 5-16)
     # ═══════════════════════════════════════════════════
-    $FBINK -y 2 -pm "   _______       _            "
-    $FBINK -y 3 -pm "  / ____(_)   __(_)___  ____ _"
-    $FBINK -y 4 -pm " / / __/ / | / / / __ \\/ __ \`/"
-    $FBINK -y 5 -pm "/ /_/ / /| |/ / / / / / /_/ / "
-    $FBINK -y 6 -pm "\\____/_/ |___/_/_/ /_/\\__, /  "
-    $FBINK -y 7 -pm "                     /____/   "
-    $FBINK -y 8 -pm "  ______             "
-    $FBINK -y 9 -pm " /_  __/_______  ___ "
-    $FBINK -y 10 -pm "  / / / ___/ _ \\/ _ \\"
-    $FBINK -y 11 -pm " / / / /  /  __/  __/"
-    $FBINK -y 12 -pm "/_/ /_/   \\___/\\___/ "
-    $FBINK -y 13 -pm "                     "
+    sh "$SCRIPT_DIR/ascii-splash.sh" "$SCRIPT_DIR/ascii/giving-tree"
+
     
     # # Random tagline (centered) - using case for sh compatibility
     # RANDOM_NUM=$(($(date +%s) % 11))
@@ -179,9 +166,10 @@ draw_launcher() {
     # $FBINK -y 18 -pm ""
     # $FBINK -y 19 -pm "            $TAGLINE"
     
-    $FBINK -y 14 -pm ""
-    $FBINK -y 15 -pm " It's Not E-Waste"
-    $FBINK -y 26 -pm " Until It's Dead."
+    $FBINK -y 14 -pmb ""
+    $FBINK -y 15 -pmb " It's Not E-Waste"
+    $FBINK -y 16 -pmb " Until It's Dead."
+    $FBINK -s
 
     # Get system information
     MODEL=$(cat /proc/usid 2>/dev/null | cut -c4- || echo "Unknown")
@@ -197,17 +185,19 @@ draw_launcher() {
         BATTERY=$(cat /sys/class/power_supply/bd71827_bat/capacity 2>/dev/null || echo "N/A")
         BATTERY="$BATTERY%"
     else
-        BATTERY="N/A"
+        BATTERY="Unknown"
     fi
 
-    $FBINK -y 17 -pm ""
-    $FBINK -y 18 -pm "Hardware Info:"
-    $FBINK -y 19 -pm "Device:  Kindle $MODEL"
-    $FBINK -y 20 -pm "Kernel:  $KERNEL"
-    $FBINK -y 21 -pm "Battery: $BATTERY"
-    $FBINK -y 23 -pm "Uptime:  $UPTIME"
-    $FBINK -y 24 -pm "Memory:  $MEMORY"
-    $FBINK -y 25 -pm "Storage: $STORAGE"
+    $FBINK -y 17 -pmb ""
+    $FBINK -y 18 -pmb "Hardware Info:"
+    $FBINK -y 19 -pmb "Device:  Kindle $MODEL"
+    $FBINK -y 20 -pmb "Kernel:  $KERNEL"
+    $FBINK -y 21 -pmb "Battery: $BATTERY"
+    $FBINK -y 23 -pmb "Uptime:  $UPTIME"
+    $FBINK -y 24 -pmb "Memory:  $MEMORY"
+    $FBINK -y 25 -pmb "Storage: $STORAGE"
+
+    $FBINK -s
 }
 
 # Launch KOReader (no framework version)
@@ -222,114 +212,19 @@ launch_koreader() {
         # KOReader needs framework services to NOT be continuously suspended
         touch /var/tmp/koreader-pause-keeper
         
-        # Show launching message
-        $FBINK -c
-        $FBINK -y 12 -pmh "Launching KOReader..."
+        # Don't show launching message, It's the only thing we *can* do.
+        # # Show launching message
+        # $FBINK -c
+        $FBINK -y 31 -pmhb " "
+        $FBINK -y 32 -pmhb "Launching KOReader..."
+        $FBINK -y 33 -pmhb " "
+        $FBINK -s
         sleep 1
         
-        # Create a launcher script that will run after we exit
-        cat > /var/tmp/launch-koreader.sh << 'KOREADER_EOF'
-#!/bin/sh
-# Wait for GivingTree to fully exit
-sleep 3
-
-# Clear screen
-/mnt/us/koreader/fbink -c 2>/dev/null
-
-# Create a stub 'start' command that does nothing
-# This prevents koreader.sh from hanging when trying to restart services
-cat > /tmp/start << 'STUBEOF'
-#!/bin/sh
-# Stub start command - does nothing
-exit 0
-STUBEOF
-chmod +x /tmp/start
-export PATH="/tmp:$PATH"
-
-# Launch KOReader in background so we can monitor it
-cd /mnt/us/koreader
-./koreader.sh &
-
-KOREADER_PID=$!
-
-# Wait for KOReader to actually start (reader.lua to appear)
-STARTUP_WAIT=0
-while [ $STARTUP_WAIT -lt 15 ]; do
-    if pgrep -f "reader.lua" >/dev/null 2>&1; then
-        break
-    fi
-    sleep 1
-    STARTUP_WAIT=$((STARTUP_WAIT + 1))
-done
-
-if [ $STARTUP_WAIT -ge 15 ]; then
-    kill -9 $KOREADER_PID 2>/dev/null
-    echo "RESTART" > /var/tmp/givingtree-state
-    rm -f /var/tmp/koreader-pause-keeper
-    rm -f /var/tmp/launch-koreader.sh
-    exit 1
-fi
-
-# Now monitor for exit
-
-while true; do
-    sleep 2
-    
-    # Check if koreader.sh is still running
-    if ! kill -0 $KOREADER_PID 2>/dev/null; then
-        break
-    fi
-    
-    # Check if reader.lua is running
-    if ! pgrep -f "reader.lua" >/dev/null 2>&1; then
-        
-        # Wait 5 seconds to see if it's just slow cleanup
-        sleep 5
-        
-        if ! pgrep -f "reader.lua" >/dev/null 2>&1; then
-            # Still no reader.lua - KOReader has exited but script is hung
-            
-            # Force kill everything
-            kill -9 $KOREADER_PID 2>/dev/null
-            killall -9 koreader 2>/dev/null
-            killall -9 reader.lua 2>/dev/null
-            break
-        else
-        fi
-    fi
-done
-
-# Additional cleanup
-
-killall -9 reader.lua 2>/dev/null
-
-killall -9 koreader 2>/dev/null
-
-# Remove stub commands
-rm -f /tmp/start
-
-# Signal restart FIRST (before any fbink that might hang)
-echo "RESTART" > /var/tmp/givingtree-state
-
-# Remove keeper pause flag
-rm -f /var/tmp/koreader-pause-keeper
-
-# DON'T show any fbink message - just exit immediately
-# The watchdog will show the message
-
-# Clean up this script
-rm -f /var/tmp/launch-koreader.sh
-
-# Force exit - no delays, no fbink, nothing
-exec 1>&-
-exec 2>&-
-exit 0
-KOREADER_EOF
-        
-        chmod +x /var/tmp/launch-koreader.sh
+        chmod +x $SCRIPT_DIR/launch-koreader.sh
         
         # Launch in background, detached from this process
-        /var/tmp/launch-koreader.sh </dev/null >/dev/null 2>&1 &
+        sh $SCRIPT_DIR/launch-koreader.sh </dev/null >/dev/null 2>&1 &
         
         # Exit launcher IMMEDIATELY - critical to free up resources
         exit 0
@@ -337,16 +232,21 @@ KOREADER_EOF
         $FBINK -c
         $FBINK -y 10 -pmh "KOReader not installed!"
         $FBINK -y 12 -pm "Install from: koreader.rocks"
-        $FBINK -y 14 -pm "Touch anywhere to return..."
-        "$TOUCH_READER" /dev/input/event1 2>/dev/null >/dev/null
+        $FBINK -y 14 -pm "Stealing the axe!"
+        $FBINK -y 14 -pm "And running a full reboot..."
+        sleep 15
+        rm /mnt/us/.axe
+        reboot_system
     fi
 }
 
 # Reboot system
 reboot_system() {
-    $FBINK -c
-    $FBINK -y 12 -pmh "⚠️  REBOOTING KINDLE..."
-    $FBINK -y 14 -pm "Please wait..."
+    $FBINK -y 31 -pmhb " "
+    $FBINK -y 32 -pmhb "⚠️  REBOOTING KINDLE..."
+    $FBINK -y 33 -pmhb "Please wait..."
+    $FBINK -y 34 -pmhb " "
+    $FBINK -s
     sleep 2
     restore_services
     /sbin/reboot
@@ -354,18 +254,23 @@ reboot_system() {
 
 # Power off system
 poweroff_system() {
-    $FBINK -c
-    $FBINK -y 12 -pmh "⚠️  POWERING OFF..."
-    $FBINK -y 14 -pm "Goodbye!"
+    $FBINK -y 31 -pmhb " "
+    $FBINK -y 32 -pmhb "⚠️  POWERING OFF..."
+    $FBINK -y 33 -pmhb "Goodbye!"
+    $FBINK -y 34 -pmhb " "
+    $FBINK -s
     sleep 2
     restore_services
     /sbin/poweroff
 }
 
 trigger_safemode() {
-    $FBINK -y 32 -pm "touched safeboot file"
+    $FBINK -y 34 -pmhb " "
+    $FBINK -y 35 -pmhb "Removed Axe File"
+    $FBINK -y 36 -pmhb " "
+    $FBINK -s
     sleep 5
-    touch /mnt/us/BOOT_KINDLEOS
+    rm /mnt/us/.axe
     reboot_system
 }
 
@@ -381,44 +286,48 @@ main() {
     while true; do
         draw_launcher
 
-        sleep 1
+        sleep 5
         
-        TS=$(cat /mnt/us/.treestump 2>/dev/null)
+        TS=$(cat /tmp/.treestump 2>/dev/null || echo "0")
 
-        $FBINK -y 26 -pm "Dbg-TS: '$TS'"
-        if [ -z "$TS" ]; then
-            $FBINK -y 29 -pm "Treestump Not Found"
-        else
-            case "$TS" in
-                0)
-                    $FBINK -y 29 -pm "Treestump Safe"
-                    echo "1" > /mnt/us/.treestump
-                    wait 10
-                    launch_koreader;;
-                1)
-                    $FBINK -y 29 -pm "Treestump Launch Crashed"
-                    trigger_safemode;;
-                2)
-                    $FBINK -y 29 -pm "Treestump Close Crashed"
-                    echo "3" > /mnt/us/.treestump
-                    wait 15
-                    launch_koreader;;
-                3)
-                    $FBINK -y 29 -pm "Treestump Second Crash"
-                    echo "4" > /mnt/us/.treestump
-                    wait 15
-                    launch_koreader;;
-                4)
-                    $FBINK -y 29 -pm "Treestump Safe Mode"
-                    trigger_safemode;;
-                safemode|safe|framework)
-                    $FBINK -y 29 -pm "Treestump Manual Safe Mode"
-                    trigger_safemode;;
-                *)
-                    $FBINK -y 29 -pm "Treestump Unknown Safe Mode"
-                    trigger_safemode;;
-            esac
-        fi
+        #$FBINK -y 26 -pm "Dbg-TS: '$TS'"
+        case "$TS" in
+            0)
+                $FBINK -y 29 -pm "Treestump Safe"
+                echo "1" > /tmp/.treestump
+                wait 10
+                launch_koreader;;
+            1)
+                $FBINK -y 29 -pm "Treestump Launch Crashed"
+                trigger_safemode;;
+            2)
+                $FBINK -y 29 -pm "Treestump Close Crashed"
+                echo "3" > /tmp/.treestump
+                wait 15
+                launch_koreader;;
+            3)
+                $FBINK -y 29 -pm "Treestump Second Crash"
+                echo "4" > /tmp/.treestump
+                wait 15
+                launch_koreader;;
+            4)
+                $FBINK -y 29 -pm "Treestump Safe Mode"
+                trigger_safemode;;
+            safemode|safe|framework)
+                $FBINK -y 29 -pm "Treestump Manual Safe Mode"
+                trigger_safemode
+                reboot_system;;
+            80)
+                $FBINK -y 29 -pm "Treestump Restarting"
+                reboot_system;;
+            90)
+                $FBINK -y 29 -pm "Treestump Shutting Down"
+                poweroff_system;;
+            *)
+                $FBINK -y 29 -pm "Treestump Unknown Safe Mode"
+                trigger_safemode
+                reboot_system;;
+        esac
     done
 }
 

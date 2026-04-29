@@ -1,18 +1,18 @@
 --[[
     This is meant to detect if KO-Reader crashes prior to a safe close.
 ]]--
-local file_path = "/mnt/us/.treestump"
-local diag_path = "/mnt/us/.axe"
+local file_path = "/tmp/.treestump"
+local diag_path = "/tmp/.woodchips"
 
 local treestump = "safemode"
-local axe = "Close Log"
+local woodchips = "Close Log"
 
 local file = io.open(file_path, "r")
 if file then
     treestump = file:read("*l") -- Read the first line
     file:close()
 else
-    axe = axe .. " - Couldn't read file"
+    woodchips = woodchips .. " - Couldn't read file"
 end
 
 
@@ -34,7 +34,7 @@ if treestump == "4" then
     treestump = "0"
 end
 if treestump ~= "0" then
-    axe = axe .. " - Stump isn't 0? it's '" .. treestump .."'"
+    woodchips = woodchips .. " - Stump isn't 0? it's '" .. treestump .."'"
 end
 
 -- Open the file in write mode ("w" overwrites, "a" appends)
@@ -44,15 +44,15 @@ if file then
     file:write(treestump)
     file:close()
 else
-    axe = axe .. " - Couldn't write file?"
+    woodchips = woodchips .. " - Couldn't write file?"
 end
 
 -- Open the file in write mode ("w" overwrites, "a" appends)
 local file, err = io.open(diag_path, "w")
 
 if file then
-    file:write(axe)
+    file:write(woodchips)
     file:close()
 else
-    axe = axe .. " - Couldn't write axe?"
+    woodchips = woodchips .. " - Couldn't write axe?"
 end

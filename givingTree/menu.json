@@ -5,6 +5,12 @@
             "priority": 0,
             "items": [
                 {
+                    "name": "Place Axe and Thief files",
+                    "priority": 3,
+                    "action": "/mnt/us/extensions/givingTree/bin/axe-and-thief.sh",
+                    "exitmenu": true
+                },
+                {
                     "name": "Test Launch GivingTree",
                     "priority": 1,
                     "action": "./bin/launcher.sh",
@@ -16,17 +22,11 @@
                     "items": []
                 },
                 {
-                    "name": "Install Amazon-Free Boot",
+                    "name": "Install Lumberjack (Amazon-Free) Boot",
                     "priority": 3,
-                    "action": "./bin/install-amazon-free-boot.sh",
+                    "action": "./bin/install-lumberjack.sh",
                     "exitmenu": true
                 },
-                {
-                    "name": "Uninstall Amazon-Free Boot",
-                    "priority": 4,
-                    "action": "./bin/uninstall-amazon-free-boot.sh",
-                    "exitmenu": true
-                }
             ]
         }
     ]

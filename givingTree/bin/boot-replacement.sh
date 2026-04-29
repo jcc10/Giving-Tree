@@ -8,10 +8,16 @@ LOG_FILE="/var/tmp/givingTree-boot.log"
 
 # Logging function
 log_msg() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+    echo "$(tail -n 499 $LOG_FILE)" > filename && echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> $LOG_FILE
 }
 
 log_msg "=== GivingTree Boot Replacement Starting ==="
+
+# For testing to prevent unbricking the hard way
+if [ -f /mnt/us/.thief ]; then
+    log_msg ".thief stole the .axe!"
+    rm /mnt/us/.axe
+fi
 
 # Emergency Recovery System
 
@@ -20,6 +26,7 @@ if [ -f /mnt/us/BOOT_KINDLEOS ]; then
     log_msg "USB override detected: BOOT_KINDLEOS file exists"
     mv /mnt/us/BOOT_KINDLEOS /mnt/us/BOOT_KINDLEOS.used
     log_msg "Allowing framework to start normally"
+    rm /mnt/us/.axe
     reboot
     exit 0
 fi
@@ -31,6 +38,7 @@ BOOT_FAILED_FILE="/var/tmp/givingtree-boot-failed"
 if [ -f "$BOOT_FAILED_FILE" ]; then
     log_msg "Boot failure flag detected - skipping GivingTree"
     rm "$BOOT_FAILED_FILE"
+    rm /mnt/us/.axe
     reboot
     exit 0
 fi
@@ -45,14 +53,10 @@ log_msg "Boot attempt #$BOOT_COUNT"
 if [ "$BOOT_COUNT" -gt 3 ]; then
     log_msg "ERROR: Too many boot attempts ($BOOT_COUNT) - failing safe to KindleOS"
     touch "$BOOT_FAILED_FILE"
+    rm /mnt/us/.axe
     reboot
     exit 0
 fi
-touch /mnt/us/DONT_START_FRAMEWORK
-/mnt/init.d/framework stop
-/mnt/init.d/browserd stop
-/mnt/init.d/audio stop
-/mnt/init.d/webreaderd stop
 
 # Reset counter after successful 60-second uptime
 (
@@ -60,6 +64,14 @@ touch /mnt/us/DONT_START_FRAMEWORK
     echo "0" > "$BOOT_COUNT_FILE"
     log_msg "Boot count reset after 60s uptime"
 ) &
+
+log_msg "Gracefully stopping framework from starting..."
+
+# Graceful stop of framework
+/mnt/init.d/framework stop 2>/dev/null || true
+/mnt/init.d/browserd stop 2>/dev/null || true
+/mnt/init.d/audio stop 2>/dev/null || true
+/mnt/init.d/webreaderd stop 2>/dev/null || true
 
 # System Initialization
 
@@ -137,7 +149,8 @@ log_msg "Launching GivingTree..."
 if [ ! -d "$LAUNCHER_DIR" ]; then
     log_msg "ERROR: Launcher directory not found: $LAUNCHER_DIR"
     log_msg "Falling back to KindleOS"
-    kill "$KEEPER_PID" 2>/dev/null
+    rm /mnt/us/.axe
+    reboot
     exit 0
 fi
 
@@ -146,7 +159,8 @@ LAUNCHER_SCRIPT="$LAUNCHER_DIR/bin/launcher.sh"
 if [ ! -x "$LAUNCHER_SCRIPT" ]; then
     log_msg "ERROR: Launcher script not found or not executable: $LAUNCHER_SCRIPT"
     log_msg "Falling back to KindleOS"
-    kill "$KEEPER_PID" 2>/dev/null
+    rm /mnt/us/.axe
+    reboot
     exit 0
 fi
 
@@ -168,22 +182,27 @@ FBINK_PATH="/mnt/us/koreader/fbink"
 
 # Background watchdog process - state-aware
 (
+    # Logging function
+    log_msg() {
+        echo "$(tail -n 999 $LOG_FILE)" > filename && echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> $LOG_FILE
+    }
+
     while true; do
         sleep 3  # Check every 3 seconds
         
         # Check the state file
-        STATE=$(cat /var/tmp/givingtree-state 2>/dev/null || echo "RUNNING")
+        STATE=$(cat /var/tmp/givingtree-state 2>/dev/null || echo "STARTING")
         
         
         # Simple check: is the launcher running?
         if ! pgrep -f launcher.sh >/dev/null 2>&1; then
             # Launcher not running - check state
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Watchdog: Launcher not running, STATE=$STATE" >> "$LOG_FILE"
+            log_msg "Watchdog: Launcher not running, STATE=$STATE"
             
             case "$STATE" in
                 EXIT)
                     # Intentional exit to KindleOS - don't restart
-                    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Watchdog: Exited to KindleOS, stopping..." >> "$LOG_FILE"
+                    log_msg "Watchdog: Exited to KindleOS, stopping..."
                     rm -f /var/tmp/givingtree-state
                     exit 0
                     ;;
@@ -195,7 +214,7 @@ FBINK_PATH="/mnt/us/koreader/fbink"
                     
                 RESTART)
                     # Explicit restart request
-                    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Watchdog: Restart requested..." >> "$LOG_FILE"
+                    log_msg " Watchdog: Restart requested..."
                     rm -f /var/tmp/givingtree-state
                     killall -9 koreader 2>/dev/null
                     killall -9 reader.lua 2>/dev/null
@@ -207,24 +226,54 @@ FBINK_PATH="/mnt/us/koreader/fbink"
                     cd "$LAUNCHER_DIR" 2>/dev/null || continue
                     echo "RUNNING" > /var/tmp/givingtree-state
                     GIVINGTREE_BOOT_MODE=1 "$LAUNCHER_SCRIPT" &
-                    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Watchdog: GivingTree restarted" >> "$LOG_FILE"
+                    log_msg "Watchdog: GivingTree restarted"
+                    wait 10
                     ;;
+
+                RUNNING)
+                    "$FBINK_PATH" -y 2 -pm "Giving Tree Illegal State!..."
+                    sleep 10
+                    ;;
+                STARTING)
+                    # Reboot if we are still starting in 60 seconds.
+                    (
+                        sleep 60
+                        STATE=$(cat /var/tmp/givingtree-state 2>/dev/null || echo "STARTING")
+                        case "$STATE" in
+                            STARTING)
+                                if [ -f /mnt/us/.petrify ]; then
+                                    echo "CRASHED" > /var/tmp/givingtree-state
+                                    exit 0
+                                else
+                                    rm /mnt/us/.axe
+                                    echo "EXIT" > /var/tmp/givingtree-state
+                                    reboot
+                                    exit 0
+                                fi
+                                ;;
+                        esac
+                    ) &
                     
+                    "$FBINK_PATH" -c 2>/dev/null
+                    "$FBINK_PATH" -y 15 -pm "Starting The GivingTree..." 
+                    sleep 60
+                    ;;
                 *)
                     # Unknown state or crash - restart
-                    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Watchdog: Launcher crashed (state: $STATE), restarting..." >> "$LOG_FILE"
+                    log_msg " Watchdog: Launcher crashed (state: $STATE), restarting..."
                     
                     rm -f /var/tmp/givingtree-state
                     killall -9 touch_reader 2>/dev/null
                     
                     "$FBINK_PATH" -c 2>/dev/null
-                    "$FBINK_PATH" -y 15 -pm "GivingTree restarting..." 2>/dev/null
+                    "$FBINK_PATH" -y 15 -pm "GivingTree crashed restarting..." 2>/dev/null
                     sleep 1
-                    
+                
                     cd "$LAUNCHER_DIR" 2>/dev/null || continue
                     echo "RUNNING" > /var/tmp/givingtree-state
                     GIVINGTREE_BOOT_MODE=1 "$LAUNCHER_SCRIPT" &
-                    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Watchdog: GivingTree restarted" >> "$LOG_FILE"
+                    log_msg "Watchdog: GivingTree restarted"
+                    wait 10
                     ;;
             esac
         fi

@@ -1,18 +1,20 @@
 --[[
     This is meant to detect if KO-Reader crashes prior to the (Presumed) completion of boot.
 ]]--
-local file_path = "/mnt/us/.treestump"
-local diag_path = "/mnt/us/.axe"
+local file_path = "/tmp/.treestump"
+local diag_path = "/tmp/.woodchips"
 
 local treestump = "safemode"
-local axe = "Launch Log"
+local woodchips = "Launch Log"
+local read = false;
 
 local file = io.open(file_path, "r")
 if file then
     treestump = file:read("*l") -- Read the first line
     file:close()
+    read = true;
 else
-    axe = axe .. " - Couldn't read file"
+    woodchips = woodchips .. " - Couldn't read file"
 end
 
 
@@ -25,25 +27,28 @@ if treestump == "1" then
     treestump = "2"
 end
 if treestump ~= "2" then
-    axe = axe .. " - Stump isn't 2? it's '" .. treestump .."'"
+    woodchips = woodchips .. " - Stump isn't 2? it's '" .. treestump .."'"
 end
 
--- Open the file in write mode ("w" overwrites, "a" appends)
-local file, err = io.open(file_path, "w")
+-- Only write if we read the file in the first place.
+if read then
+    -- Open the file in write mode ("w" overwrites, "a" appends)
+    local file, err = io.open(file_path, "w")
 
-if file then
-    file:write(treestump)
-    file:close()
-else
-    axe = axe .. " - Couldn't write file?"
+    if file then
+        file:write(treestump)
+        file:close()
+    else
+        woodchips = woodchips .. " - Couldn't write file?"
+    end
 end
 
 -- Open the file in write mode ("w" overwrites, "a" appends)
 local file, err = io.open(diag_path, "w")
 
 if file then
-    file:write(axe)
+    file:write(woodchips)
     file:close()
 else
-    axe = axe .. " - Couldn't write axe?"
+    woodchips = woodchips .. " - Couldn't write axe?"
 end

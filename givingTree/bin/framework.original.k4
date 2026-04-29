@@ -35,7 +35,6 @@ _MW_FLAGS=
 # Allow one to not start the Framework up if so desired.
 #
 _DONT_START_FRAMEWORK=${MNTUS_MP}/DONT_START_FRAMEWORK
-_AXE=${MNTUS_MP}/.axe
 
 # Enforce the locale for PDF (among potentially other) to see UTF8 properly.
 #
@@ -93,32 +92,6 @@ no_framework_screen()
 	puts -b
 	puts -b " remove ${MNTUS_MP}/DONT_START_FRAMEWORK..."
 	puts    " ...to start the framework up"
-}
-
-no_framework_screen_axe()
-{
-	msg "not starting framework because ${MNTUS_MP}/.axe exists" I
-	
-	if [ ${SYSTEM_STARTUP} -eq 1 ]; then
-		set_boot_progress ${_FINISH_STARTUP_PROGRESS}
-		sleep 1
-	fi
-
-	clear_screen
-	#logo_screen # Don't show the amazon logo with the Axe
-	
-	puts_init
-	puts -b " ~~~~~~~~~~~ Axe Found ~~~~~~~~~~~"
-	puts -b
-	puts    " Taking the axe to the Giving Tree."
-    
-	if [ -e /mnt/us/extensions/givingTree/bin/boot-replacement.sh ]; then
-    	# Launch GivingTree watchdog script
-		sh /mnt/us/extensions/givingTree/bin/boot-replacement.sh
-	else
-		# Remove the file to prevent accidental bricking.
-	    rm $_AXE
-    fi
 }
 
 start_framework_foreground()
@@ -293,17 +266,13 @@ stop_x()
 
 start()
 {
-	if [ -e ${_AXE} ]; then
-		no_framework_screen_axe
+	if [ -e ${_DONT_START_FRAMEWORK} ]; then
+		no_framework_screen
 	else
-        if [ -e ${_DONT_START_FRAMEWORK} ]; then
-			no_framework_screen
-		else
-			clean_up
-			
-			boot_milestone "Fr00"
-			start_framework
-		fi
+        clean_up
+        
+        boot_milestone "Fr00"
+        start_framework
     fi
 }
 
