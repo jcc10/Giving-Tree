@@ -6,6 +6,8 @@ echo "RUNNING" > /var/tmp/givingtree-state
 SCRIPT_DIR="$(dirname "$0")"
 FBINK="/mnt/us/koreader/fbink"
 [ ! -f "$FBINK" ] && FBINK="/usr/bin/fbink"
+ASCII_SPLASH="$SCRIPT_DIR/ascii-splash.sh"
+ASCII_ART="$SCRIPT_DIR/ascii/"
 
 # Global state variables
 FRONTLIGHT_ENABLED=0
@@ -144,7 +146,7 @@ draw_launcher() {
     # ═══════════════════════════════════════════════════
     # BANNER - Centered with padding (lines 5-16)
     # ═══════════════════════════════════════════════════
-    sh "$SCRIPT_DIR/ascii-splash.sh" "$SCRIPT_DIR/ascii/giving-tree"
+    sh "$ASCII_SPLASH" "$ASCII_ART/giving-tree" 15 "It's Not E-Waste" "Until It's Dead."
 
     
     # # Random tagline (centered) - using case for sh compatibility
@@ -165,11 +167,6 @@ draw_launcher() {
     
     # $FBINK -y 18 -pm ""
     # $FBINK -y 19 -pm "            $TAGLINE"
-    
-    $FBINK -y 14 -pmb ""
-    $FBINK -y 15 -pmb " It's Not E-Waste"
-    $FBINK -y 16 -pmb " Until It's Dead."
-    $FBINK -s
 
     # Get system information
     MODEL=$(cat /proc/usid 2>/dev/null | cut -c4- || echo "Unknown")
@@ -242,11 +239,7 @@ launch_koreader() {
 
 # Reboot system
 reboot_system() {
-    $FBINK -y 31 -pmhb " "
-    $FBINK -y 32 -pmhb "⚠️  REBOOTING KINDLE..."
-    $FBINK -y 33 -pmhb "Please wait..."
-    $FBINK -y 34 -pmhb " "
-    $FBINK -s
+    sh "$ASCII_SPLASH" "$ASCII_ART/reload" 32 "⚠️  REBOOTING KINDLE..." "Please wait..."
     sleep 2
     restore_services
     /sbin/reboot
@@ -254,21 +247,14 @@ reboot_system() {
 
 # Power off system
 poweroff_system() {
-    $FBINK -y 31 -pmhb " "
-    $FBINK -y 32 -pmhb "⚠️  POWERING OFF..."
-    $FBINK -y 33 -pmhb "Goodbye!"
-    $FBINK -y 34 -pmhb " "
-    $FBINK -s
+    sh "$ASCII_SPLASH" "$ASCII_ART/switch-off" 32 "⚠️  POWERING OFF..." "Goodbye!"
     sleep 2
     restore_services
     /sbin/poweroff
 }
 
 trigger_safemode() {
-    $FBINK -y 34 -pmhb " "
-    $FBINK -y 35 -pmhb "Removed Axe File"
-    $FBINK -y 36 -pmhb " "
-    $FBINK -s
+    sh "$ASCII_SPLASH" "$ASCII_ART/keys" 15 "⚠️  REBOOTING KINDLE..." ".axe file deleted!"
     sleep 5
     rm /mnt/us/.axe
     reboot_system

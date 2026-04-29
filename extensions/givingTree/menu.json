@@ -7,7 +7,7 @@
                 {
                     "name": "Place Axe and Thief files",
                     "priority": 3,
-                    "action": "/mnt/us/extensions/givingTree/bin/axe-and-thief.sh",
+                    "action": "sh /mnt/us/extensions/givingTree/bin/axe-and-thief.sh",
                     "exitmenu": true
                 },
                 {
@@ -24,7 +24,7 @@
                 {
                     "name": "Install Lumberjack (Amazon-Free) Boot",
                     "priority": 3,
-                    "action": "./bin/install-lumberjack.sh",
+                    "action": "sh /mnt/us/extensions/givingTree/bin/install-lumberjack.sh",
                     "exitmenu": true
                 }
             ]
