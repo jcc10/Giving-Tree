@@ -148,6 +148,10 @@ But seriously, mounting in USB mode *seems* to be incompatable with running KO R
 ### Q: How do I configure Wi-Fi?
 A: Wi-Fi can be controlled via the `wpa_cli` tool. I'm looking into writing a patch to allow for loading configs via said command through the KO Reader GUI, but for now, use a terminal / SSH to control.
 
+### Q: I'm connected to Wi-Fi but I don't have a gateway.
+A: Exit KO Reader to do a soft reload. That tends to fix the problem. If that doesn't work, reboot?
+
+If I figure out a better solution it'll probably get added to the Wi-Fi control patch.
 ### Q: I can't get SSH.
 A: Use KUBRICK to get the diag menu and mount as USB-MSD and delete the `.axe` file. Then configure a intial Wi-Fi through the framework.
 
