@@ -130,3 +130,33 @@ This is meant to interact with additional plugins/patches to allow for adding in
 
 #### *: Anything Else
 If it finds anything else? It assumes something has gone terribly wrong, deletes the `.axe` file, and reboots.
+
+## Q&A:
+### Q: Why are the docs this mess?
+A: Because I mostly wrote them up while drowsy after finally finishing the initial code and I just wanted to get it pushed and to go to sleep.
+### Q: Are you going to clean up the docs?
+A: Probably sometime in the future? Right now I'm trying to write a couple of patches to provide a power menu and a wi-fi connection menu within KO Reader. (Also probably a timezone setting feature.)
+### Q: How do I Restart / Shutdown the reader?
+A: Write a 80 (restart) or 90 (shutdown) to `/tmp/.treestump` over ssh, then exit KO Reader. Or you can probably press & Hold thep power button long enough.
+
+I'm working on a power-menu patch right now, but I'm taking a break to read some right now.
+### Q: How do I load books over USB?
+A: That's the neat part! You don't!
+
+But seriously, mounting in USB mode *seems* to be incompatable with running KO Reader, so you really can't. I'll look into adding a "Switch to USB" mode to the power menu some-time in the future.
+
+### Q: How do I configure Wi-Fi?
+A: Wi-Fi can be controlled via the `wpa_cli` tool. I'm looking into writing a patch to allow for loading configs via said command through the KO Reader GUI, but for now, use a terminal / SSH to control.
+
+### Q: I can't get SSH.
+A: Use KUBRICK to get the diag menu and mount as USB-MSD and delete the `.axe` file. Then configure a intial Wi-Fi through the framework.
+
+### Q: Why "GivingTree"?
+The version of "The Giving Tree" I remember (IDK if there are variants or not) involved the tree eventually telling the child that used to play on it & read under it, that he should be fine cutting it down to build something new (or something to that extent). Given the boot image of someone reading under a tree and the fact we are cutting down the entire base software, it just fit.
+
+### Q: How do I fix the timezone.
+I DONT KNOW....
+
+But seriously, I tried messing with it based on the instructions [HERE](https://www.mobileread.com/forums/showthread.php?t=353224), But I hit problems. I'm planning on writing a patch to auto-run the `settz` command during boot since I think it doesn't save if you don't set the root-fs to rw mode(?) along with adding a menu to change timezones. (And automatically changing between DST and non-DST offsets depending on the date.)
+
+Seriously though. Fuck Time-Zones. And I'm considering asking for a patch to KO Reader to permit easer timezone offet patching.
